@@ -37,6 +37,7 @@ class UIComponent {
 
       this.shadowDOM.appendChild(styleSheet);
       this.shadowDOM.appendChild(this.iframeElement);
+      this.handleDarkReaderFilter();
       this.toggleIframeElementClasses("vimiumUIComponentVisible", "vimiumUIComponentHidden");
 
       // Open a port and pass it to the iframe via window.postMessage.  We use an AsyncDataFetcher to handle
@@ -97,6 +98,27 @@ class UIComponent {
       }
     });
   }
+
+  // This ensures that Vimium's UI elements (HUD, Vomnibar) honor the browser's light/dark theme preference,
+  // even when the user is also using the DarkReader extension. DarkReader is the most popular dark mode
+  // Chrome extension in use as of 2020.
+  handleDarkReaderFilter() {
+    const reverseFilterClass = "reverseDarkReaderFilter";
+
+    const reverseFilterIfExists = () => {
+      // The DarkReader extension creates this element if it's actively modifying the current page.
+      const darkReaderElement = document.getElementById("dark-reader-style");
+      if (darkReaderElement && darkReaderElement.innerHTML.includes("filter"))
+        this.iframeElement.classList.add(reverseFilterClass);
+      else
+        this.iframeElement.classList.remove(reverseFilterClass);
+    };
+
+    reverseFilterIfExists();
+
+    const observer = new MutationObserver(reverseFilterIfExists);
+    observer.observe(document.head, { characterData: true, subtree: true, childList: true });
+  };
 
   toggleIframeElementClasses(removeClass, addClass) {
     this.iframeElement.classList.remove(removeClass);
